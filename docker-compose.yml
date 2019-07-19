@@ -1,0 +1,220 @@
+version: "3.7"
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:${ELK_VERSION}
+    labels:
+        co.elastic.logs/module: "elasticsearch"
+    volumes:
+      - type: bind
+        source: ./elasticsearch/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: true
+      - type: volume
+        source: elasticsearch
+        target: /usr/share/elasticsearch/data 
+    ports:
+      - "9200:9200"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    restart: always
+    networks:
+      - ego
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:${ELK_VERSION}
+    volumes:
+      - type: bind
+        source: ./kibana/config
+        target: /usr/share/kibana/config
+        read_only: true
+    expose:
+      - "5601"
+    restart: always
+    networks:
+      - ego
+    depends_on:
+      - elasticsearch
+
+  filebeat:
+    user: root
+    image: docker.elastic.co/beats/filebeat-oss:${ELK_VERSION}
+    command: filebeat -e -strict.perms=false
+    volumes: 
+      - type: bind
+        source: ./filebeat/filebeat.docker.yml
+        target: /usr/share/filebeat/filebeat.yml
+        read_only: true
+      - type: bind
+        source: ./filebeat/modules.d
+        target: /usr/share/filebeat/modules.d
+        read_only: true
+      - type: bind
+        source: /var/lib/docker/containers
+        target: /var/lib/docker/containers
+        read_only: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+      - type: bind
+        source: /var/log
+        target: /var/log
+        read_only: true
+      - type: volume
+        source: filebeat
+        target: /usr/share/filebeat/data/
+    restart: always
+    networks:
+      - ego
+    depends_on:
+      - elasticsearch
+
+  metricbeat:
+    user: root
+    image: docker.elastic.co/beats/metricbeat-oss:${ELK_VERSION}
+    command: metricbeat --strict.perms=false -e 
+    volumes:
+      - type: bind
+        source: ./metricbeat/metricbeat.docker.yml
+        target: /usr/share/metricbeat/metricbeat.yml
+        read_only: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+      - type: bind
+        source: /sys/fs/cgroup
+        target: /hostfs/sys/fs/cgroup
+        read_only: true
+      - type: bind
+        source: /proc
+        target: /hostfs/proc
+        read_only: true
+    restart: always
+    networks:
+      - ego
+    privileged: true
+    depends_on:
+      - elasticsearch
+
+  curator:
+    build:
+      context: curator
+    labels:
+      json_logger: true 
+    restart: always 
+    networks:
+      - ego
+
+  jenkins:
+    build:
+      context: jenkins
+    user: root
+    expose: 
+      - "8080"
+    volumes:
+    - type: volume
+      source: jenkins_home
+      target: /var/jenkins_home
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock
+      read_only: true
+    restart: always
+    networks:
+      - ego
+
+  nginx:
+    image: nginx:1.17
+    volumes: 
+      - type: bind
+        source: ./nginx/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+      - type: bind
+        source: /private/var/ego/ssl
+        target: /etc/ssl
+        read_only: true
+      - type: bind
+        source: ./nginx/sites-enabled
+        target: /etc/nginx/sites-enabled
+        read_only: true
+    restart: always
+    networks:
+      - ego
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - kibana
+      - elasticsearch
+  
+  pgres_monitor:
+    image: docker.elastic.co/beats/metricbeat-oss:${ELK_VERSION}
+    command: metricbeat --strict.perms=false -e
+    env_file:
+      - ../secrets/pgres_monitor.env
+    volumes:
+      - type: bind
+        source: ./postgres/metricbeat.docker.yml
+        target: /usr/share/metricbeat/metricbeat.yml
+        read_only: true
+    networks:
+      - ego
+    restart: always
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:${PGRES_VERSION}
+    command: ["-c", "log_min_duration_statement=0", "-c", "log_line_prefix=%m [%p] %u@%d "]
+    env_file:
+      - ../secrets/pgres_root.env
+      - ../secrets/pgres_monitor.env
+    volumes:
+    - type: volume
+      source: postgres
+      target: /var/lib/postgresql/data
+    - type: bind
+      source: ./postgres/pgmonitor.sh
+      target: /docker-entrypoint-initdb.d/pgmonitor.sh
+      read_only: true
+    ports:
+      - "5432"
+    networks:
+      - ego
+    restart: always
+
+  ids:
+    image: byappt/ids:1.0.1
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    volumes:
+      - type: bind
+        source: ../secrets/keymaterial.pfx
+        target: /app/keymaterial.pfx
+        read_only: true
+      - type: bind
+        source: ./ids/appsettings.json
+        target: /app/appsettings.json
+        read_only: true
+    ports: 
+      - "80"
+    networks:
+      - ego
+    restart: always
+
+volumes:
+  elasticsearch:
+  filebeat:
+  jenkins_home:
+  postgres:
+
+networks:
+  ego:
+    external: true
+    

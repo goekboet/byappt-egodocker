@@ -1,0 +1,51 @@
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: false
+      json.message_key: log
+      templates:
+        - condition:
+            equals:
+              docker.container.labels.json_logger: "True"
+          config:
+            - type: docker
+              containers.ids:
+                - "${data.docker.container.id}"
+              json.keys_under_root: true
+              json.add_error_key: true
+        - condition:
+            contains:
+              docker.container.image: nginx
+          config:
+            - module: nginx
+              access:
+                input:
+                  type: docker
+                  containers.ids:
+                    - "${data.docker.container.id}"
+                  containers.stream: stdout
+              error:
+                input:
+                  type: docker
+                  containers.ids:
+                    - "${data.docker.container.id}"
+                  containers.stream: stderr
+        - condition:
+            contains:
+              docker.container.image: postgres
+          config:
+            - module: postgresql
+              log:
+                input:
+                  type: docker
+                  containers.ids:
+                    - "${data.docker.container.id}"
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  pipeline: "geoip-info"
