@@ -15,7 +15,7 @@ services:
     ports:
       - "9200:9200"
     environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ES_JAVA_OPTS: "-Xmx512m -Xms512m"
     ulimits:
       memlock:
         soft: -1
@@ -31,8 +31,8 @@ services:
         source: ./kibana/config
         target: /usr/share/kibana/config
         read_only: true
-    expose:
-      - "5601"
+    ports:
+      - "5601:5601"
     restart: always
     networks:
       - ego
@@ -73,6 +73,15 @@ services:
     depends_on:
       - elasticsearch
 
+  filebeat-setup:
+    image: docker.elastic.co/beats/filebeat-oss:${ELK_VERSION}
+    command: 'setup -E setup.kibana.host=kibana:5601 -E output.elasticsearch.hosts=["elasticsearch:9200"]'
+    networks:
+      - ego
+    depends_on:
+      - kibana
+      - elasticsearch
+
   metricbeat:
     user: root
     image: docker.elastic.co/beats/metricbeat-oss:${ELK_VERSION}
@@ -99,6 +108,15 @@ services:
       - ego
     privileged: true
     depends_on:
+      - elasticsearch
+
+  metricbeat-setup:
+    image: docker.elastic.co/beats/metricbeat-oss:${ELK_VERSION}
+    command: 'setup -E setup.kibana.host=kibana:5601 -E output.elasticsearch.hosts=["elasticsearch:9200"]'
+    networks:
+      - ego
+    depends_on:
+      - kibana
       - elasticsearch
 
   curator:
@@ -143,6 +161,10 @@ services:
         source: ./nginx/sites-enabled
         target: /etc/nginx/sites-enabled
         read_only: true
+      - type: volume
+        source: meets_spa
+        target: /usr/share/nginx/html/meets
+        read_only: true
     restart: always
     networks:
       - ego
@@ -151,23 +173,25 @@ services:
       - "443:443"
     depends_on:
       - kibana
+      - broker
+      - meets
       - elasticsearch
   
-  pgres_monitor:
-    image: docker.elastic.co/beats/metricbeat-oss:${ELK_VERSION}
-    command: metricbeat --strict.perms=false -e
-    env_file:
-      - ../secrets/pgres_monitor.env
-    volumes:
-      - type: bind
-        source: ./postgres/metricbeat.docker.yml
-        target: /usr/share/metricbeat/metricbeat.yml
-        read_only: true
-    networks:
-      - ego
-    restart: always
-    depends_on:
-      - postgres
+  # pgres_monitor:
+  #   image: docker.elastic.co/beats/metricbeat-oss:${ELK_VERSION}
+  #   command: metricbeat --strict.perms=false -e
+  #   env_file:
+  #     - ../secrets/pgres_monitor.env
+  #   volumes:
+  #     - type: bind
+  #       source: ./postgres/metricbeat.docker.yml
+  #       target: /usr/share/metricbeat/metricbeat.yml
+  #       read_only: true
+  #   networks:
+  #     - ego
+  #   restart: always
+  #   depends_on:
+  #     - postgres
 
   postgres:
     image: postgres:${PGRES_VERSION}
@@ -183,14 +207,17 @@ services:
       source: ./postgres/pgmonitor.sh
       target: /docker-entrypoint-initdb.d/pgmonitor.sh
       read_only: true
+    - type: bind
+      source: ../seedData
+      target: /home/seed
     ports:
-      - "5432"
+      - "5432:5432"
     networks:
       - ego
     restart: always
 
   ids:
-    image: byappt/ids:1.0.1
+    image: ego/idp:0.0.10
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
     volumes:
@@ -202,17 +229,91 @@ services:
         source: ./ids/appsettings.json
         target: /app/appsettings.json
         read_only: true
+    labels:
+      json_logger: true
     ports: 
       - "80"
     networks:
       - ego
     restart: always
 
+  meets:
+    image: ego/meets:0.0.9
+    labels:
+      json_logger: true
+    env_file:
+      - ../secrets/meets.env
+    extra_hosts:
+      - "ids.ego:192.168.1.68"
+    volumes:
+      - type: bind
+        source: ./meets/appsettings.json
+        target: /app/appsettings.json
+        read_only: true
+    networks:
+      - ego
+    ports: 
+      - "80"
+    restart: always
+    depends_on:
+      - ids
+      - broker
+
+  meets_spa:
+    image: ego/meet.spa:0.0.1
+    volumes:
+      - type: volume
+        source: meets_spa
+        target: /home/spa/dist
+        read_only: false 
+
+  proper:
+    image: ego/proper:0.0.4
+    labels:
+      json_logger: true
+    env_file:
+      - ../secrets/proper.env
+    extra_hosts:
+      - "ids.ego:192.168.1.68"
+    volumes:
+      - type: bind
+        source: ./proper/appsettings.json
+        target: /app/appsettings.json
+        read_only: true
+    networks:
+      - ego
+    ports: 
+      - "80"
+    restart: always
+
+  broker:
+    image: ego/broker:0.0.9
+    labels:
+      json_logger: true
+    env_file:
+      - ../secrets/broker.env
+    extra_hosts:
+      - "ids.ego:192.168.1.68"
+    volumes:
+      - type: bind
+        source: ./broker/appsettings.json
+        target: /app/appsettings.json
+        read_only: true
+    networks:
+      - ego
+    ports: 
+      - "80"
+    restart: always
+    depends_on:
+      - ids
+      - postgres
+
 volumes:
   elasticsearch:
   filebeat:
   jenkins_home:
   postgres:
+  meets_spa:
 
 networks:
   ego:

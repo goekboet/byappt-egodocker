@@ -59,6 +59,6 @@ metricbeat.modules:
 
 
 output.elasticsearch:
-  hosts: ["http://localhost:9200"]
-  pipeline: geoip-info
+  hosts: ["http://elasticsearch"]
+  # pipeline: geoip-info
 

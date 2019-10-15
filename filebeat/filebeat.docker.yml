@@ -37,6 +37,14 @@ filebeat.autodiscover:
                   containers.stream: stderr
         - condition:
             contains:
+              docker.container.image: nginx
+          config:
+            - type: docker
+              containers.ids:
+                - "${data.docker.container.id}"
+              containers.stream: stderr
+        - condition:
+            contains:
               docker.container.image: postgres
           config:
             - module: postgresql
@@ -48,4 +56,3 @@ filebeat.autodiscover:
 
 output.elasticsearch:
   hosts: ["elasticsearch:9200"]
-  pipeline: "geoip-info"
