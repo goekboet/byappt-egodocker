@@ -1,0 +1,109 @@
+{
+    "Clients": [
+        {
+            "ClientId": "dev",
+            "RequireConsent": false,
+            "ClientName": "Developer Client",
+            "ClientSecrets": [
+                {
+                    "Value": "7yYOmqPGc68kDReiZgSANhqOCB0f/soqXtDjIZ/BhWc="
+                }
+            ],
+            "AllowedGrantTypes": [
+                "password",
+                "refresh_token"
+            ],
+            "AllowedScopes": [
+                "openid",
+                "profile",
+                "bookings",
+                "publish",
+                "offline_access"
+            ],
+            "AllowOfflineAccess": true,
+            "AccessTokenLifetime": 28800
+        },
+        {
+            "ClientId": "meets",
+            "RequireConsent": false,
+            "ClientName": "Meets",
+            "ClientSecrets": [
+                {
+                    "Value": "TZyfD1CybAcT1+jyyTw5VsRFXo7cM5R7gI45CowrrwQ="
+                }
+            ],
+            "AllowedGrantTypes": [
+                "authorization_code",
+                "refresh_token"
+            ],
+            "AllowedScopes": [
+                "offline_access",
+                "openid",
+                "profile",
+                "bookings"
+            ],
+            "AllowOfflineAccess": true,
+            "RefreshTokenExpiration": "Sliding",
+            "RedirectUris": [
+                "https://meets.ego/signin-oidc",
+                "http://localhost:5010/signin-oidc"
+            ],
+            "PostLogoutRedirectUris": [
+                "https://meets.ego/signout-callback-oidc",
+                "http://localhost:5010/signout-callback-oidc"
+            ]
+        },
+        {
+            "ClientId": "publish",
+            "RequireConsent": false,
+            "ClientName": "Publish",
+            "ClientSecrets": [
+                {
+                    "Value": "UMHdCE1sCGJP1j3ROBuYj8dR8mQnj//J9F3bI36e8FM="
+                }
+            ],
+            "AllowedGrantTypes": [
+                "authorization_code",
+                "refresh_token"
+            ],
+            "AllowedScopes": [
+                "offline_access",
+                "profile",
+                "openid",
+                "publish"
+            ],
+            "AllowOfflineAccess": true,
+            "RefreshTokenExpiration": "Sliding",
+            "RedirectUris": [
+                "https://publish.ego/signin-oidc"
+            ],
+            "PostLogoutRedirectUris": [
+                "https://publish.ego/signout-callback-oidc"
+            ],
+            "EnableLocalLogin": false,
+            "IdentityProviderRestrictions": [
+                "Okta",
+                "Github"
+            ]
+        }
+    ],
+    "Apis": [
+        {
+            "Name": "https://broker.ego",
+            "DisplayName": "Meets broker api",
+            "Description": "Provides access to means of communication on a meetingpoint.",
+            "Scopes": [
+                {
+                    "Name": "bookings",
+                    "DisplayName": "Claim times in my name",
+                    "Description": "Add, remove and list bookings"
+                },
+                {
+                    "Name": "publish",
+                    "DisplayName": "Publish times in my names to the public",
+                    "Description": "Add and remove times"
+                }
+            ]
+        }
+    ]
+}

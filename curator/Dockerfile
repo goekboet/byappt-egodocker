@@ -4,5 +4,5 @@ COPY config/ /srv
 
 COPY cronjobs /etc/crontabs/root
 
-# start crond with log level 8 in foreground, output to stderr
-CMD ["crond", "-f", "-d", "8"]
+# Run curator 
+CMD ["/curator/curator", "--config", "/srv/config.yml", "/srv/actionfile.yml"]
