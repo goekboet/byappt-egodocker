@@ -80,11 +80,23 @@
             "PostLogoutRedirectUris": [
                 "https://publish.ego/signout-callback-oidc"
             ],
-            "EnableLocalLogin": false,
+            "EnableLocalLogin": true,
             "IdentityProviderRestrictions": [
                 "Okta",
                 "Github"
             ]
+        }
+    ],
+    "ApiScopes": [
+        {
+            "Name": "bookings",
+            "DisplayName": "Claim times in my name",
+            "Description": "Add, remove and list bookings"
+        },
+        {
+            "Name": "publish",
+            "DisplayName": "Publish times in my names to the public",
+            "Description": "Add and remove times"
         }
     ],
     "Apis": [
@@ -93,16 +105,8 @@
             "DisplayName": "Meets broker api",
             "Description": "Provides access to means of communication on a meetingpoint.",
             "Scopes": [
-                {
-                    "Name": "bookings",
-                    "DisplayName": "Claim times in my name",
-                    "Description": "Add, remove and list bookings"
-                },
-                {
-                    "Name": "publish",
-                    "DisplayName": "Publish times in my names to the public",
-                    "Description": "Add and remove times"
-                }
+                "bookings",
+                "publish"
             ]
         }
     ]

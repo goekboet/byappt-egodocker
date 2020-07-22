@@ -97,24 +97,6 @@ services:
     networks:
       - ego
 
-  # jenkins:
-  #   build:
-  #     context: jenkins
-  #   user: root
-  #   expose:
-  #     - "8080"
-  #   volumes:
-  #   - type: volume
-  #     source: jenkins_home
-  #     target: /var/jenkins_home
-  #   - type: bind
-  #     source: /var/run/docker.sock
-  #     target: /var/run/docker.sock
-  #     read_only: true
-  #   restart: always
-  #   networks:
-  #     - ego
-
   nginx:
     image: nginx:1.17
     volumes:
@@ -169,7 +151,7 @@ services:
     restart: always
 
   ids:
-    image: ego/idp:0.3.1
+    image: ego/idp:0.4.4
     env_file:
       - ../secrets/ids.env
     volumes:
@@ -202,7 +184,7 @@ services:
     restart: always
 
   ids_keyrotation:
-    image: ids-pki:0.0.1
+    image: ids-pki:0.0.2
     volumes:
       - type: volume
         source: ids_pki
@@ -210,7 +192,7 @@ services:
         read_only: false
 
   meets:
-    image: ego/meets:0.2.0
+    image: ego/meets:0.3.3
     labels:
       json_logger: true
     env_file:
@@ -240,7 +222,7 @@ services:
       - broker
 
   meets_spa:
-    image: ego/meet.spa:0.2.0
+    image: ego/meet.spa:0.3.5
     volumes:
       - type: volume
         source: meets_spa
@@ -250,7 +232,7 @@ services:
       - meets
 
   publish:
-    image: ego/publish:0.0.8
+    image: ego/publish:0.1.7
     labels:
       json_logger: true
     env_file:
@@ -280,7 +262,7 @@ services:
       - broker
 
   publish_spa:
-    image: ego/publish.spa:0.0.4
+    image: ego/publish.spa:0.1.19
     volumes:
       - type: volume
         source: publish_spa
@@ -290,7 +272,7 @@ services:
       - publish
 
   broker:
-    image: ego/broker:0.2.1
+    image: ego/broker:0.2.2
     labels:
       json_logger: true
     env_file:
